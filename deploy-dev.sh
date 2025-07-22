@@ -83,7 +83,7 @@ gcloud run deploy $BACKEND_SERVICE \
     --platform managed \
     --region $GCP_REGION \
     --allow-unauthenticated \
-    --set-env-vars "APP_ENV=development,GCP_PROJECT=$GCP_PROJECT,GCP_REGION=$GCP_REGION,DB_INSTANCE=$DB_INSTANCE,INSTANCE_CONNECTION_NAME=$GCP_PROJECT:$GCP_REGION:$DB_INSTANCE" \
+    --set-env-vars "APP_ENV=development,GCP_PROJECT=$GCP_PROJECT,GCP_REGION=$GCP_REGION,DB_INSTANCE=$DB_INSTANCE,INSTANCE_CONNECTION_NAME=$GCP_PROJECT:$GCP_REGION:$DB_INSTANCE,ALLOWED_ORIGINS=https://forte-web-dev-hhlhhgenaq-du.a.run.app" \
     --set-secrets "SECRET_KEY=secret-key:latest,OPENAI_API_KEY=openai-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest,DB_PASSWORD=db-password-dev:latest" \
     --add-cloudsql-instances $GCP_PROJECT:$GCP_REGION:$DB_INSTANCE \
     --memory 512Mi \

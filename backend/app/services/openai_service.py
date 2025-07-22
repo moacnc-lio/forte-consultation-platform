@@ -38,7 +38,7 @@ class OpenAISummaryService:
             # 간소화된 시스템 프롬프트 (속도 최적화)
             system_content = "당신은 일본어를 한국어로 번역하고 의료/미용 상담 내용을 요약하는 전문가입니다.\n\n" + prompt_template
 
-            # OpenAI API 호출 (최신 모델 사용)
+            # OpenAI API 호출 (최신 모델 사용, 스트리밍 활성화)
             response = self.client.chat.completions.create(
                 model="gpt-4.1-mini-2025-04-14",  # 최신 GPT-4.1 mini 모델
                 messages=[
@@ -53,18 +53,28 @@ class OpenAISummaryService:
                 ],
                 temperature=0.3,  # 빠른 응답을 위해 조정
                 max_tokens=2000,  # 토큰 수 줄여서 속도 향상
-                stream=False  # 스트리밍 비활성화
+                stream=True  # 스트리밍 활성화
             )
             
-            korean_summary = response.choices[0].message.content
+            # 스트리밍 응답 처리
+            korean_summary = ""
+            usage_info = None
+            
+            for chunk in response:
+                if chunk.choices[0].delta.content is not None:
+                    korean_summary += chunk.choices[0].delta.content
+                
+                # 마지막 청크에서 usage 정보 가져오기
+                if hasattr(chunk, 'usage') and chunk.usage:
+                    usage_info = chunk.usage
             
             # 마크다운 기호 제거
             korean_summary = self._clean_markdown(korean_summary)
             
-            # 토큰 사용량 및 캐시 사용량 로깅
-            usage = response.usage
+            # 토큰 사용량 로깅 (usage 정보가 있는 경우만)
+            if usage_info:
+                logger.info(f"OpenAI API 사용: 입력 {usage_info.prompt_tokens} 토큰, 출력 {usage_info.completion_tokens} 토큰, 총 {usage_info.total_tokens} 토큰")
             
-            logger.info(f"OpenAI API 사용: 입력 {usage.prompt_tokens} 토큰, 출력 {usage.completion_tokens} 토큰, 총 {usage.total_tokens} 토큰")
             logger.info(f"AI 요약 생성 성공: {len(japanese_text)} -> {len(korean_summary)} 글자")
             
             return {
@@ -75,14 +85,14 @@ class OpenAISummaryService:
                 "target_language": "ko",
                 "model_used": "gpt-4.1-mini-2025-04-14",
                 "tokens_used": {
-                    "prompt_tokens": usage.prompt_tokens,
-                    "completion_tokens": usage.completion_tokens,
-                    "total_tokens": usage.total_tokens,
+                    "prompt_tokens": usage_info.prompt_tokens if usage_info else 0,
+                    "completion_tokens": usage_info.completion_tokens if usage_info else 0,
+                    "total_tokens": usage_info.total_tokens if usage_info else 0,
                     "cached_tokens": getattr(
-                        getattr(usage, 'prompt_tokens_details', None), 
+                        getattr(usage_info, 'prompt_tokens_details', None), 
                         'cached_tokens', 
                         0
-                    ) or 0
+                    ) if usage_info else 0
                 }
             }
             

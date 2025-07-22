@@ -42,7 +42,7 @@ gcloud run deploy $BACKEND_SERVICE \
     --image gcr.io/$PROJECT_ID/$BACKEND_SERVICE:latest \
     --region $REGION \
     --allow-unauthenticated \
-    --set-env-vars "APP_ENV=production,GCP_PROJECT=$PROJECT_ID,GCP_REGION=$REGION,DB_INSTANCE=forte-db" \
+    --set-env-vars "APP_ENV=production,GCP_PROJECT=$PROJECT_ID,GCP_REGION=$REGION,DB_INSTANCE=forte-db,ALLOWED_ORIGINS=https://forte-web-hhlhhgenaq-du.a.run.app" \
     --set-secrets "SECRET_KEY=secret-key:latest,DB_PASSWORD=db-password:latest" \
     --add-cloudsql-instances $PROJECT_ID:$REGION:forte-db \
     --memory 2Gi --cpu 2 --max-instances 20 --min-instances 1 \
