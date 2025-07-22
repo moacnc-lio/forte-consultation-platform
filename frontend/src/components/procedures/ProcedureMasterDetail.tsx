@@ -149,18 +149,34 @@ const ProcedureMasterDetail: React.FC = () => {
     setDeleteConfirmOpen(true);
   };
 
-  const handleFormSave = (savedProcedure: Procedure) => {
-    if (editingProcedure) {
-      // 수정
-      setProcedures(prev => 
-        prev.map(p => p.id === savedProcedure.id ? savedProcedure : p)
-      );
-    } else {
-      // 추가
-      setProcedures(prev => [...prev, savedProcedure]);
+  const handleFormSave = async (savedProcedure: Procedure) => {
+    try {
+      if (editingProcedure) {
+        // 수정 - 즉시 상태 업데이트
+        setProcedures(prev => 
+          prev.map(p => p.id === savedProcedure.id ? savedProcedure : p)
+        );
+        
+        // 선택된 시술이 수정된 경우 업데이트
+        if (selectedProcedure?.id === savedProcedure.id) {
+          setSelectedProcedure(savedProcedure);
+        }
+      } else {
+        // 추가 - 즉시 상태 업데이트
+        setProcedures(prev => [...prev, savedProcedure]);
+        
+        // 새로 추가된 시술을 선택
+        setSelectedProcedure(savedProcedure);
+      }
+      
+      // 폼 닫기
+      setFormOpen(false);
+      setEditingProcedure(null);
+      
+      console.log('시술 정보가 성공적으로 저장되었습니다:', savedProcedure);
+    } catch (error) {
+      console.error('상태 업데이트 실패:', error);
     }
-    setFormOpen(false);
-    setEditingProcedure(null);
   };
 
   const handleDeleteConfirm = async () => {

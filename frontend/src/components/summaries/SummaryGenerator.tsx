@@ -25,6 +25,9 @@ interface SummaryGeneratorProps {
 const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated }) => {
   const theme = useTheme();
   const [originalText, setOriginalText] = useState('');
+  const [consultantName, setConsultantName] = useState(''); // 상담자 이름
+  const [clientName, setClientName] = useState(''); // 피상담자(고객) 이름
+  const [consultationTitle, setConsultationTitle] = useState(''); // 상담명
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedSummary, setGeneratedSummary] = useState<SummaryGenerateResponse | null>(null);
@@ -32,6 +35,18 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
   const handleGenerateSummary = async () => {
     if (!originalText.trim()) {
       setError('상담 내용을 입력해주세요.');
+      return;
+    }
+    if (!consultantName.trim()) {
+      setError('상담자 이름을 입력해주세요.');
+      return;
+    }
+    if (!clientName.trim()) {
+      setError('피상담자(고객) 이름을 입력해주세요.');
+      return;
+    }
+    if (!consultationTitle.trim()) {
+      setError('상담명을 입력해주세요.');
       return;
     }
 
@@ -49,8 +64,17 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
       };
 
       const response = await summariesApi.generateSummary(request);
-      setGeneratedSummary(response);
-      onSummaryGenerated?.(response);
+      
+      // 추가 정보를 포함한 응답 생성
+      const enhancedResponse: SummaryGenerateResponse = {
+        ...response,
+        consultant_name: consultantName,
+        customer_name: clientName,
+        consultation_title: consultationTitle
+      };
+      
+      setGeneratedSummary(enhancedResponse);
+      onSummaryGenerated?.(enhancedResponse);
     } catch (error) {
       console.error('AI 요약 생성 실패:', error);
       setError('AI 요약 생성에 실패했습니다. 다시 시도해주세요.');
@@ -61,13 +85,16 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
 
   const handleClear = () => {
     setOriginalText('');
+    setConsultantName('');
+    setClientName('');
+    setConsultationTitle('');
     setGeneratedSummary(null);
     setError(null);
   };
 
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* 헤더 */}
       <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
         <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
@@ -76,18 +103,52 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
         </Typography>
       </Box>
 
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2, gap: 2 }}>
-        {/* 입력 영역 */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-            상담 내용 입력 (일본어)
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* 고정 입력 헤더 */}
+        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            상담 정보 및 내용 입력
           </Typography>
+        </Box>
+
+        {/* 스크롤 가능한 입력 영역 */}
+        <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+          {/* 상담 정보 입력 */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+            <TextField
+              label="상담자 이름"
+              placeholder="상담을 진행하는 직원 이름"
+              value={consultantName}
+              onChange={(e) => setConsultantName(e.target.value)}
+              sx={{ flex: 1 }}
+              size="small"
+            />
+            <TextField
+              label="고객 이름"
+              placeholder="상담받는 고객 이름"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              sx={{ flex: 1 }}
+              size="small"
+            />
+          </Box>
+          
+          <TextField
+            fullWidth
+            label="상담명"
+            placeholder="예: 2024년 7월 보톡스 상담, 첫 방문 상담 등"
+            value={consultationTitle}
+            onChange={(e) => setConsultationTitle(e.target.value)}
+            sx={{ mb: 2 }}
+            size="small"
+          />
 
           {/* 텍스트 입력 */}
           <TextField
             fullWidth
             multiline
-            rows={12}
+            minRows={12}
+            maxRows={20}
             label="일본어 상담 내용"
             placeholder="일본어로 된 상담 내용을 입력해주세요..."
             value={originalText}
@@ -102,13 +163,15 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
               {error}
             </Alert>
           )}
+        </Box>
 
-          {/* 버튼들 */}
+        {/* 고정 버튼 영역 */}
+        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               variant="contained"
               onClick={handleGenerateSummary}
-              disabled={loading || !originalText.trim()}
+              disabled={loading || !originalText.trim() || !consultantName.trim() || !clientName.trim() || !consultationTitle.trim()}
               startIcon={loading ? <CircularProgress size={20} /> : <AIIcon />}
               sx={{ flex: 1 }}
             >
@@ -124,93 +187,6 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
               초기화
             </Button>
           </Box>
-        </Box>
-
-        {/* 결과 영역 */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-            한국어 요약 결과
-          </Typography>
-
-          {!generatedSummary ? (
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              flex: 1,
-              textAlign: 'center',
-              color: 'text.secondary',
-              border: `1px dashed ${theme.palette.divider}`,
-              borderRadius: 2,
-              p: 3
-            }}>
-              <AIIcon sx={{ fontSize: 60, mb: 2, opacity: 0.3 }} />
-              <Typography variant="body1" sx={{ mb: 1 }}>
-                AI 요약을 기다리고 있습니다
-              </Typography>
-              <Typography variant="body2">
-                상담 내용을 입력하고 'AI 요약 생성' 버튼을 클릭해주세요.
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              {/* 요약 메타 정보 */}
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  p: 2, 
-                  mb: 2, 
-                  bgcolor: alpha(theme.palette.success.main, 0.1),
-                  border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`
-                }}
-              >
-                <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 600 }}>
-                  요약 완료
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  상담 날짜: {new Date(generatedSummary.consultation_date).toLocaleDateString('ko-KR')} | 
-                  생성 시간: {new Date().toLocaleString('ko-KR')}
-                </Typography>
-              </Paper>
-
-              {/* 요약 내용 */}
-              <Box sx={{ 
-                flex: 1,
-                p: 2, 
-                bgcolor: 'background.paper',
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                overflow: 'auto'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    lineHeight: 1.6,
-                    whiteSpace: 'pre-wrap'
-                  }}
-                >
-                  {generatedSummary.summary}
-                </Typography>
-              </Box>
-
-              {/* 저장 버튼 */}
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<SaveIcon />}
-                  size="small"
-                  onClick={() => {
-                    // TODO: 요약 저장 기능 구현
-                    console.log('저장 기능 구현 예정');
-                  }}
-                >
-                  요약 저장
-                </Button>
-              </Box>
-            </Box>
-          )}
         </Box>
       </Box>
     </Box>

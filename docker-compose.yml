@@ -1,18 +1,18 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 데이터베이스
+  # PostgreSQL 데이터베이스 (포트 변경으로 충돌 해결)
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: forte_db
-      POSTGRES_USER: forte
-      POSTGRES_PASSWORD: forte123
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/database_schema.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "5433:5432"  # 포트 변경: 로컬 5433 → 컨테이너 5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U forte -d forte_db"]
       interval: 30s
@@ -23,20 +23,21 @@ services:
   backend:
     build: ./backend
     environment:
-      APP_ENV: development
-      DATABASE_URL: postgresql://forte:forte123@postgres:5432/forte_db
-      SECRET_KEY: forte-development-secret-key
-      GEMINI_API_KEY: AIzaSyDgLF4iQ3DC3bpvEBmn_IOiDtPxKKWccOo
-      DEBUG: "True"
-      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DEBUG: ${DEBUG}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # React 프론트엔드 (개발용)
   frontend:
@@ -47,9 +48,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      REACT_APP_API_URL: http://localhost:8000
-      REACT_APP_ENV: development
-      REACT_APP_DEBUG: "true"
+      REACT_APP_API_URL: ${REACT_APP_API_URL}
+      REACT_APP_ENV: ${REACT_APP_ENV}
+      REACT_APP_DEBUG: ${REACT_APP_DEBUG}
     depends_on:
       - backend
 

@@ -128,7 +128,6 @@ const ProcedureForm: React.FC<ProcedureFormProps> = ({
       }
 
       onSave(savedProcedure);
-      onClose();
     } catch (error) {
       console.error('시술 정보 저장 실패:', error);
       setError('시술 정보 저장에 실패했습니다. 다시 시도해주세요.');
@@ -272,7 +271,10 @@ const ProcedureForm: React.FC<ProcedureFormProps> = ({
           <Grid item xs={12}>
             <TextField
               fullWidth
+              multiline
+              rows={4}
               label="가격 정보"
+              placeholder="【부위별】00-00만원&#10;【패키지】00-00만원&#10;* 부위별로 구분하여 입력하세요"
               value={formData.price_info}
               onChange={(e) => handleChange('price_info', e.target.value)}
             />

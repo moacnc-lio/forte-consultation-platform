@@ -91,7 +91,7 @@ const ProcedureDetailPanel: React.FC<ProcedureDetailPanelProps> = ({ procedure, 
           {title}
         </Typography>
       </Box>
-      <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+      <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-line' }}>
         {content}
       </Typography>
     </Paper>
@@ -100,13 +100,13 @@ const ProcedureDetailPanel: React.FC<ProcedureDetailPanelProps> = ({ procedure, 
   return (
     <Box sx={{ height: '100%', overflow: 'auto' }}>
       {/* 헤더 */}
-      <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}` }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h3" component="h2" sx={{ fontWeight: 700, mb: 1 }}>
+            <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>
               {procedure.korean_name}
             </Typography>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
               {procedure.english_name}
             </Typography>
           </Box>
@@ -154,10 +154,10 @@ const ProcedureDetailPanel: React.FC<ProcedureDetailPanelProps> = ({ procedure, 
 
         {/* 브랜드 정보 */}
         {procedure.brand_info && (
-          <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
+          <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'primary.50', borderRadius: 1, mt: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <StarIcon sx={{ color: 'primary.main', mr: 1 }} />
-              <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              <StarIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
                 {procedure.brand_info}
               </Typography>
             </Box>
@@ -166,23 +166,78 @@ const ProcedureDetailPanel: React.FC<ProcedureDetailPanelProps> = ({ procedure, 
       </Box>
 
       {/* 콘텐츠 */}
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: 2 }}>
         {/* 시술 설명 */}
         {procedure.description && (
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center' }}>
-              <ProcedureIcon sx={{ mr: 1, color: 'primary.main' }} />
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5, display: 'flex', alignItems: 'center' }}>
+              <ProcedureIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
               시술 개요
             </Typography>
             <Paper elevation={0} sx={{ p: 3, bgcolor: 'grey.50', borderRadius: 2 }}>
-              <Typography variant="body1" sx={{ lineHeight: 1.8, fontSize: '1.1rem' }}>
+              <Typography variant="body1" sx={{ lineHeight: 1.8, fontSize: '1.1rem', whiteSpace: 'pre-line' }}>
                 {procedure.description}
               </Typography>
             </Paper>
           </Box>
         )}
 
-        {/* 상세 정보 그리드 */}
+        {/* 안전 정보 섹션 - 부작용 및 주의사항 우선 표시 */}
+        {(procedure.side_effects || procedure.precautions) && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', color: 'error.main' }}>
+              <WarningIcon sx={{ mr: 1, color: 'error.main', fontSize: 20 }} />
+              안전 정보 및 주의사항
+            </Typography>
+            <Grid container spacing={3}>
+              {procedure.side_effects && (
+                <Grid item xs={12} md={6}>
+                  <Paper elevation={0} sx={{ 
+                    p: 3, 
+                    height: '100%',
+                    border: `2px solid ${theme.palette.warning.main}`,
+                    borderRadius: 2,
+                    backgroundColor: alpha(theme.palette.warning.main, 0.05)
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <WarningIcon sx={{ color: 'warning.main', mr: 1 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'warning.main' }}>
+                        부작용
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {procedure.side_effects}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+
+              {procedure.precautions && (
+                <Grid item xs={12} md={6}>
+                  <Paper elevation={0} sx={{ 
+                    p: 3, 
+                    height: '100%',
+                    border: `2px solid ${theme.palette.error.main}`,
+                    borderRadius: 2,
+                    backgroundColor: alpha(theme.palette.error.main, 0.05)
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <WarningIcon sx={{ color: 'error.main', mr: 1 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'error.main' }}>
+                        주의사항
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {procedure.precautions}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+        )}
+
+        {/* 시술 정보 그리드 */}
         <Grid container spacing={3}>
           {procedure.target_areas && (
             <Grid item xs={12} md={6}>
@@ -216,34 +271,39 @@ const ProcedureDetailPanel: React.FC<ProcedureDetailPanelProps> = ({ procedure, 
               />
             </Grid>
           )}
-
-          {procedure.side_effects && (
-            <Grid item xs={12} md={6}>
-              <InfoSection
-                title="부작용"
-                content={procedure.side_effects}
-                icon={<WarningIcon />}
-                color="warning.main"
-              />
-            </Grid>
-          )}
-
-          {procedure.precautions && (
-            <Grid item xs={12} md={6}>
-              <InfoSection
-                title="주의사항"
-                content={procedure.precautions}
-                icon={<WarningIcon />}
-                color="error.main"
-              />
-            </Grid>
-          )}
         </Grid>
+
+        {/* 가격 정보 - 부가 정보 */}
+        {procedure.price_info && procedure.price_info.trim() && (
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 1.5, color: 'text.secondary' }}>
+              참고 가격
+            </Typography>
+            <Paper elevation={0} sx={{ 
+              p: 2.5, 
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 2,
+              backgroundColor: alpha(theme.palette.grey[500], 0.02)
+            }}>
+              <Typography variant="body2" sx={{ lineHeight: 1.5, whiteSpace: 'pre-line', color: 'text.secondary' }}>
+                {procedure.price_info}
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                display: 'block', 
+                mt: 1.5, 
+                color: 'text.disabled',
+                fontSize: '0.8rem'
+              }}>
+                * 가격은 병원별로 차이가 있을 수 있습니다.
+              </Typography>
+            </Paper>
+          </Box>
+        )}
 
         {/* 추가 정보 */}
         {procedure.additional_info && Object.keys(procedure.additional_info).length > 0 && (
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
               추가 정보
             </Typography>
             <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
@@ -271,7 +331,7 @@ const ProcedureDetailPanel: React.FC<ProcedureDetailPanelProps> = ({ procedure, 
         )}
 
         {/* 메타 정보 */}
-        <Box sx={{ mt: 4, pt: 3, borderTop: `1px solid ${theme.palette.divider}` }}>
+        <Box sx={{ mt: 3, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
           <Typography variant="caption" color="text.secondary">
             마지막 업데이트: {new Date(procedure.last_updated).toLocaleDateString('ko-KR')} | 
             버전: {procedure.version}

@@ -70,6 +70,10 @@ export interface ConsultationSummary {
   procedures_discussed?: number[];
   created_by?: string;
   created_at: string;
+  // 추가 필드들
+  consultant_name?: string;  // 상담자 이름
+  customer_name?: string;    // 고객 이름
+  consultation_title?: string; // 상담명
 }
 
 export interface SummaryCreate {
@@ -77,6 +81,17 @@ export interface SummaryCreate {
   original_text: string;
   prompt_template_id?: number;
   procedures_discussed?: number[];
+}
+
+export interface SummaryCreateDirect {
+  consultation_date: string;
+  original_text: string;
+  summary_text: string;
+  prompt_template_id?: number;
+  procedures_discussed?: number[];
+  consultant_name?: string;
+  customer_name?: string;
+  consultation_title?: string;
 }
 
 export interface SummaryGenerateRequest {
@@ -90,6 +105,9 @@ export interface SummaryGenerateResponse {
   original_text: string;
   template_used: string;
   consultation_date: string;
+  consultant_name?: string;
+  customer_name?: string;
+  consultation_title?: string;
 }
 
 // API 응답 타입

@@ -61,6 +61,36 @@ async def health_check():
         logger.error(f"헬스체크 실패: {str(e)}")
         raise HTTPException(status_code=503, detail="서비스 사용 불가")
 
+# 데이터베이스 초기화 엔드포인트
+@app.post("/api/init-db")
+async def init_database():
+    """데이터베이스 초기화 및 시드 데이터 생성"""
+    try:
+        from .models import Procedure, PromptTemplate
+        from .core.database import SessionLocal
+        import subprocess
+        import os
+        
+        # 프로시저 시드 데이터 실행
+        seed_procedures_path = os.path.join(os.path.dirname(__file__), "..", "seed_procedures.py")
+        if os.path.exists(seed_procedures_path):
+            subprocess.run(["python", seed_procedures_path], check=True)
+            
+        # 프롬프트 템플릿 시드 데이터 실행
+        seed_templates_path = os.path.join(os.path.dirname(__file__), "..", "seed_prompt_templates.py")
+        if os.path.exists(seed_templates_path):
+            subprocess.run(["python", seed_templates_path], check=True)
+            
+        return {
+            "status": "success",
+            "message": "데이터베이스 초기화 완료",
+            "procedures_seeded": True,
+            "templates_seeded": True
+        }
+    except Exception as e:
+        logger.error(f"데이터베이스 초기화 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"데이터베이스 초기화 실패: {str(e)}")
+
 # 글로벌 예외 처리
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
@@ -75,6 +105,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=settings.PORT,
         reload=settings.DEBUG
     )

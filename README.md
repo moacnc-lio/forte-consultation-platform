@@ -13,7 +13,7 @@ PC 기반 의료/미용 시술 전문가용 통합 상담 지원 시스템
 ### 백엔드
 - Python 3.9+ / FastAPI
 - PostgreSQL (GCP Cloud SQL)
-- Google Gemini 2.5 Flash API
+- OpenAI GPT-4o API
 - JWT 인증
 
 ### 프론트엔드
@@ -36,7 +36,7 @@ PC 기반 의료/미용 시술 전문가용 통합 상담 지원 시스템
 - 시술 정보 CRUD 관리
 
 ### 2. AI 상담 요약
-- 일본어 상담 내용 → 한국어 요약 (Google Gemini)
+- 일본어 상담 내용 → 한국어 요약 (OpenAI GPT-4o)
 - promptguide/guide.md 기반 프롬프트 관리
 - 요약 히스토리 관리
 
@@ -74,12 +74,24 @@ forte-consultation-platform/
 - PostgreSQL (로컬 또는 Docker)
 
 ### 2. 환경 변수 설정
+
+⚠️ **보안 중요**: API 키와 민감한 정보는 환경 변수 파일에 저장하세요.
+
 ```bash
-# 백엔드 환경 변수 (.env)
-DATABASE_URL=postgresql://forte:forte123@localhost:5432/forte_db
-SECRET_KEY=your-secret-key
-GEMINI_API_KEY=your-gemini-api-key
+# .env.example을 복사해서 .env 파일 생성
+cp .env.example .env
+
+# .env 파일에 실제 값 입력
+DATABASE_URL=postgresql://forte:forte123@postgres:5432/forte_db
+SECRET_KEY=your-secret-key-here
+GEMINI_API_KEY=your-gemini-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
 ```
+
+📌 **주의사항**:
+- `.env` 파일은 절대 Git에 커밋하지 마세요
+- API 키가 코드에 하드코딩되지 않도록 주의하세요
+- 프로덕션 환경에서는 강력한 SECRET_KEY를 사용하세요
 
 ### 3. 로컬 개발 실행
 
@@ -160,10 +172,10 @@ gcloud config set project forte-consultation-platform
 ./setup-database.sh
 ```
 
-#### 3. Gemini API 키 설정 (선택적)
+#### 3. OpenAI API 키 설정 (선택적)
 ```bash
-# AI 요약 기능을 사용하려면 Gemini API 키 설정
-echo "your-gemini-api-key" | gcloud secrets create gemini-api-key --data-file=-
+# AI 요약 기능을 사용하려면 OpenAI API 키 설정
+echo "your-openai-api-key" | gcloud secrets create openai-api-key --data-file=-
 ```
 
 #### 4. 애플리케이션 배포

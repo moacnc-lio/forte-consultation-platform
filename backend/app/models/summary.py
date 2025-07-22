@@ -11,6 +11,9 @@ class ConsultationSummary(Base):
     summary_text = Column(Text, nullable=False)   # 한국어 요약
     prompt_template_id = Column(Integer, index=True)
     procedures_discussed = Column(JSON)  # 논의된 시술 ID 목록
+    consultant_name = Column(String(100))  # 상담자 이름
+    customer_name = Column(String(100))    # 고객 이름
+    consultation_title = Column(String(255))  # 상담명
     created_by = Column(String(100))
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 

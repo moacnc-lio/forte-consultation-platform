@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import date, datetime
 from ..core.database import get_db
 from ..models import ConsultationSummary, PromptTemplate
-from ..services.gemini_service import GeminiSummaryService
+from ..services.openai_service import OpenAISummaryService
 from pydantic import BaseModel
 import logging
 
@@ -19,6 +19,16 @@ class SummaryCreate(BaseModel):
     prompt_template_id: Optional[int] = None
     procedures_discussed: Optional[List[int]] = None
 
+class SummaryCreateDirect(BaseModel):
+    consultation_date: date
+    original_text: str
+    summary_text: str
+    prompt_template_id: Optional[int] = None
+    procedures_discussed: Optional[List[int]] = None
+    consultant_name: Optional[str] = None
+    customer_name: Optional[str] = None
+    consultation_title: Optional[str] = None
+
 class SummaryUpdate(BaseModel):
     summary_text: str
     procedures_discussed: Optional[List[int]] = None
@@ -30,6 +40,9 @@ class SummaryResponse(BaseModel):
     summary_text: str
     prompt_template_id: Optional[int]
     procedures_discussed: Optional[List[int]]
+    consultant_name: Optional[str]
+    customer_name: Optional[str]
+    consultation_title: Optional[str]
     created_by: Optional[str]
     created_at: datetime
     
@@ -64,9 +77,9 @@ async def generate_summary(
         if not template:
             raise HTTPException(status_code=404, detail="사용 가능한 프롬프트 템플릿이 없습니다")
         
-        # Gemini API를 통한 요약 생성
-        gemini_service = GeminiSummaryService()
-        result = await gemini_service.summarize_japanese_to_korean(
+        # OpenAI API를 통한 요약 생성
+        openai_service = OpenAISummaryService()
+        result = await openai_service.summarize_japanese_to_korean(
             japanese_text=request.original_text,
             prompt_template=template.template_text
         )
@@ -87,13 +100,54 @@ async def generate_summary(
         logger.error(f"요약 생성 중 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/direct", response_model=SummaryResponse)
+async def create_summary_direct(
+    summary: SummaryCreateDirect,
+    created_by: str = "system",
+    db: Session = Depends(get_db)
+):
+    """상담 요약 직접 저장 (AI 생성 없이)"""
+    try:
+        # 프롬프트 템플릿 확인 (옵션)
+        if summary.prompt_template_id:
+            template = db.query(PromptTemplate).filter(
+                PromptTemplate.id == summary.prompt_template_id
+            ).first()
+            if not template:
+                raise HTTPException(status_code=404, detail="프롬프트 템플릿을 찾을 수 없습니다")
+        
+        # DB에 직접 저장
+        db_summary = ConsultationSummary(
+            consultation_date=summary.consultation_date,
+            original_text=summary.original_text,
+            summary_text=summary.summary_text,
+            prompt_template_id=summary.prompt_template_id,
+            procedures_discussed=summary.procedures_discussed,
+            consultant_name=summary.consultant_name,
+            customer_name=summary.customer_name,
+            consultation_title=summary.consultation_title,
+            created_by=created_by
+        )
+        
+        db.add(db_summary)
+        db.commit()
+        db.refresh(db_summary)
+        
+        logger.info(f"상담 요약 직접 저장 완료: ID {db_summary.id}")
+        return db_summary
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"상담 요약 직접 저장 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/", response_model=SummaryResponse)
 async def create_summary(
     summary: SummaryCreate,
     created_by: str = "system",
     db: Session = Depends(get_db)
 ):
-    """상담 요약 저장"""
+    """상담 요약 저장 (AI 생성 포함)"""
     try:
         # 프롬프트 템플릿 확인
         if summary.prompt_template_id:
@@ -113,8 +167,8 @@ async def create_summary(
                 PromptTemplate.is_active == True
             ).order_by(PromptTemplate.created_at.desc()).first()
         
-        gemini_service = GeminiSummaryService()
-        result = await gemini_service.summarize_japanese_to_korean(
+        openai_service = OpenAISummaryService()
+        result = await openai_service.summarize_japanese_to_korean(
             japanese_text=summary.original_text,
             prompt_template=template.template_text
         )

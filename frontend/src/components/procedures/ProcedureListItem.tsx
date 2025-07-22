@@ -9,6 +9,7 @@ import {
   useTheme,
   alpha
 } from '@mui/material';
+import { Warning as WarningIcon } from '@mui/icons-material';
 import { Procedure } from '../../types';
 
 interface ProcedureListItemProps {
@@ -44,6 +45,9 @@ const ProcedureListItem: React.FC<ProcedureListItemProps> = ({
       default: return '기타';
     }
   };
+
+  // 안전 정보 표시 여부
+  const hasSafetyInfo = procedure.side_effects || procedure.precautions;
 
   return (
     <ListItem 
@@ -141,12 +145,14 @@ const ProcedureListItem: React.FC<ProcedureListItemProps> = ({
               sx={{ 
                 display: 'block',
                 fontWeight: 500,
-                fontSize: '0.75rem'
+                fontSize: '0.75rem',
+                mb: hasSafetyInfo ? 0.5 : 0
               }}
             >
               {procedure.brand_info}
             </Typography>
           )}
+
         </Box>
       </ListItemButton>
     </ListItem>

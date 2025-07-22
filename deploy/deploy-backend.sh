@@ -4,7 +4,7 @@
 echo "=== 포르테 백엔드 배포 시작 ==="
 
 # 프로젝트 설정
-PROJECT_ID="forte-consultation-platform"
+PROJECT_ID="moa-robo"
 SERVICE_NAME="forte-backend"
 REGION="asia-northeast1"
 DB_INSTANCE_NAME="forte-db"

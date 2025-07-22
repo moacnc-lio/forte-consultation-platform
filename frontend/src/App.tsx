@@ -10,6 +10,7 @@ import Sidebar from './components/common/Sidebar';
 import Header from './components/common/Header';
 import ProceduresPage from './pages/ProceduresPage';
 import SummariesPage from './pages/SummariesPage';
+import SummaryHistoryPage from './pages/SummaryHistoryPage';
 import { useAppStore } from './stores/appStore';
 
 // React Query 클라이언트 설정
@@ -105,7 +106,7 @@ function App() {
                 flexGrow: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                ml: sidebarOpen ? 0 : '-280px',
+                ml: sidebarOpen ? 0 : '-200px',
                 transition: theme.transitions.create(['margin'], {
                   easing: theme.transitions.easing.easeOut,
                   duration: theme.transitions.duration.enteringScreen,
@@ -121,6 +122,7 @@ function App() {
                   <Route path="/" element={<ProceduresPage />} />
                   <Route path="/procedures" element={<ProceduresPage />} />
                   <Route path="/summaries" element={<SummariesPage />} />
+                  <Route path="/summaries/history" element={<SummaryHistoryPage />} />
                 </Routes>
               </Box>
             </Box>

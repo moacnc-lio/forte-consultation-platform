@@ -47,7 +47,7 @@ const SummaryList: React.FC<SummaryListProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedSummary, setSelectedSummary] = useState<ConsultationSummary | null>(null);
 
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
 
   // 상담 요약 목록 로드
   useEffect(() => {
@@ -61,7 +61,7 @@ const SummaryList: React.FC<SummaryListProps> = ({
     try {
       const summariesData = await summariesApi.getSummaries({
         skip: 0,
-        limit: 100 // 전체 로드 후 클라이언트에서 페이징
+        limit: 20 // 처음에는 20개만 로드하여 성능 개선
       });
       setSummaries(summariesData);
     } catch (error) {
@@ -72,12 +72,17 @@ const SummaryList: React.FC<SummaryListProps> = ({
     }
   };
 
-  // 검색 필터링
-  const filteredSummaries = summaries.filter(summary =>
-    summary.summary_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    summary.original_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (summary.created_by && summary.created_by.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // 검색 필터링 및 최신순 정렬
+  const filteredSummaries = summaries
+    .filter(summary =>
+      summary.summary_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      summary.original_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (summary.created_by && summary.created_by.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => {
+      // 최신순 정렬: created_at 기준으로 내림차순
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   // 페이지네이션
   const totalPages = Math.ceil(filteredSummaries.length / itemsPerPage);

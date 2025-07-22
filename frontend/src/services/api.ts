@@ -6,6 +6,7 @@ import type {
   Category,
   ConsultationSummary,
   SummaryCreate,
+  SummaryCreateDirect,
   SummaryGenerateRequest,
   SummaryGenerateResponse
 } from '../types';
@@ -119,6 +120,12 @@ export const summariesApi = {
   // 상담 요약 생성 및 저장
   createSummary: async (summary: SummaryCreate): Promise<ConsultationSummary> => {
     const response = await apiClient.post('/api/summaries/', summary);
+    return response.data;
+  },
+
+  // 상담 요약 직접 저장 (AI 생성 없이)
+  createSummaryDirect: async (summary: SummaryCreateDirect): Promise<ConsultationSummary> => {
+    const response = await apiClient.post('/api/summaries/direct', summary);
     return response.data;
   },
 

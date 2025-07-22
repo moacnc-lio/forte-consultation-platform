@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-프롬프트 템플릿 시드 데이터 생성 스크립트
+프롬프트 템플릿을 v2.1로 업데이트 (아이콘 제거)
 """
 import sys
 import os
@@ -10,22 +10,24 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 from app.models import PromptTemplate
-from app.core.database import Base
 
 # 데이터베이스 설정
 engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def create_prompt_templates():
-    """프롬프트 템플릿 생성"""
+def update_prompt_template():
+    """기존 프롬프트 템플릿을 v2.1로 업데이트"""
     session = SessionLocal()
     
     try:
-        # 기본 상담 요약 템플릿
-        basic_template = PromptTemplate(
-            name="기본 상담 요약 템플릿",
-            version="2.1",
-            template_text="""
+        # 기존 템플릿 조회
+        template = session.query(PromptTemplate).filter(
+            PromptTemplate.name == "기본 상담 요약 템플릿"
+        ).first()
+        
+        if template:
+            # 아이콘이 제거된 새로운 템플릿 텍스트
+            new_template_text = """
 다음은 고객과의 상담 녹취록입니다.
 고객의 성향, 고민, 시술 선택 과정을 정리하고, 상담자의 말투·전달력 평가까지 포함해 병원용 상담일지로 요약해줘.
 
@@ -74,29 +76,17 @@ def create_prompt_templates():
 
 ※ 핵심은 '고객의 말', '성격', '결정 과정' 위주로 정리해줘.
 ※ 병원 기록용 상담일지로 사용될 예정이므로, 간결하고 실무적으로 작성해줘.
-            """.strip(),
-            source_language="ja",
-            target_language="ko",
-            is_active=True,
-            created_from_guide=True
-        )
-        
-        
-        # 기존 템플릿 확인
-        existing_basic = session.query(PromptTemplate).filter(
-            PromptTemplate.name == "기본 상담 요약 템플릿"
-        ).first()
-        
-        # 기본 템플릿이 없으면 추가
-        if not existing_basic:
-            session.add(basic_template)
-            print("✅ 기본 상담 요약 템플릿 생성")
-        else:
-            print("ℹ️  기본 상담 요약 템플릿이 이미 존재합니다")
+            """.strip()
             
-        session.commit()
-        print("🎉 프롬프트 템플릿 시드 데이터 생성 완료!")
-        
+            # 템플릿 업데이트
+            template.template_text = new_template_text
+            template.version = "2.1"
+            
+            session.commit()
+            print("✅ 프롬프트 템플릿을 v2.1로 업데이트 완료 (아이콘 제거)")
+        else:
+            print("❌ 기본 상담 요약 템플릿을 찾을 수 없습니다")
+            
     except Exception as e:
         session.rollback()
         print(f"❌ 오류 발생: {str(e)}")
@@ -105,5 +95,5 @@ def create_prompt_templates():
         session.close()
 
 if __name__ == "__main__":
-    print("🚀 프롬프트 템플릿 시드 데이터 생성 중...")
-    create_prompt_templates()
+    print("🚀 프롬프트 템플릿 v2.1 업데이트 중...")
+    update_prompt_template()
