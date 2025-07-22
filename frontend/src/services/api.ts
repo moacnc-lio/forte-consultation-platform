@@ -22,7 +22,7 @@ console.log(`API Base URL: ${API_BASE_URL} (Environment: ${process.env.REACT_APP
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000, // 1분 기본 timeout (30초 → 60초)
   headers: {
     'Content-Type': 'application/json',
   },
@@ -111,9 +111,11 @@ export const proceduresApi = {
 
 // 상담 요약 관련 API
 export const summariesApi = {
-  // AI 요약 생성
+  // AI 요약 생성 (더 긴 timeout 적용)
   generateSummary: async (request: SummaryGenerateRequest): Promise<SummaryGenerateResponse> => {
-    const response = await apiClient.post('/api/summaries/generate', request);
+    const response = await apiClient.post('/api/summaries/generate', request, {
+      timeout: 120000, // 2분 timeout (OpenAI API 호출 시간 고려)
+    });
     return response.data;
   },
 
