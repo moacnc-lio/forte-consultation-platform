@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date, datetime
+import json
 from ..core.database import get_db
 from ..models import ConsultationSummary, PromptTemplate
 from ..services.openai_service import OpenAISummaryService
@@ -98,6 +100,87 @@ async def generate_summary(
         
     except Exception as e:
         logger.error(f"요약 생성 중 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate/stream")
+async def generate_summary_stream(
+    request: SummaryGenerateRequest,
+    db: Session = Depends(get_db)
+):
+    """AI를 이용한 상담 요약 생성 (스트리밍)"""
+    try:
+        # 프롬프트 템플릿 가져오기
+        if request.prompt_template_id:
+            template = db.query(PromptTemplate).filter(
+                PromptTemplate.id == request.prompt_template_id,
+                PromptTemplate.is_active == True
+            ).first()
+        else:
+            # 기본 활성 템플릿 사용
+            template = db.query(PromptTemplate).filter(
+                PromptTemplate.is_active == True
+            ).order_by(PromptTemplate.created_at.desc()).first()
+        
+        if not template:
+            raise HTTPException(status_code=404, detail="사용 가능한 프롬프트 템플릿이 없습니다")
+        
+        # OpenAI API를 통한 스트리밍 요약 생성
+        openai_service = OpenAISummaryService()
+        
+        async def generate():
+            try:
+                # 스트리밍 응답 받기
+                response = await openai_service.summarize_japanese_to_korean(
+                    japanese_text=request.original_text,
+                    prompt_template=template.template_text,
+                    stream=True
+                )
+                
+                full_summary = ""
+                
+                # 스트리밍 청크를 SSE 형식으로 전송
+                for chunk in response:
+                    if chunk.choices[0].delta.content is not None:
+                        content = chunk.choices[0].delta.content
+                        full_summary += content
+                        
+                        # SSE 형식으로 데이터 전송
+                        data = {
+                            "type": "content",
+                            "content": content,
+                            "accumulated": full_summary
+                        }
+                        yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                
+                # 완료 신호 전송
+                final_data = {
+                    "type": "done",
+                    "summary": openai_service._clean_markdown(full_summary),
+                    "template_used": template.name,
+                    "consultation_date": str(request.consultation_date or date.today())
+                }
+                yield f"data: {json.dumps(final_data, ensure_ascii=False)}\n\n"
+                
+            except Exception as e:
+                error_data = {
+                    "type": "error",
+                    "error": str(e)
+                }
+                yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+        
+        return StreamingResponse(
+            generate(),
+            media_type="text/plain",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"스트리밍 요약 생성 중 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/direct", response_model=SummaryResponse)

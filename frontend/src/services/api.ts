@@ -119,6 +119,74 @@ export const summariesApi = {
     return response.data;
   },
 
+  // 스트리밍 요약 생성
+  generateSummaryStream: async (
+    request: SummaryGenerateRequest,
+    onContent: (content: string, accumulated: string) => void,
+    onComplete: (summary: string, metadata: any) => void,
+    onError: (error: string) => void
+  ): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/summaries/generate/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        // SSE 데이터 파싱
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // 마지막 불완전한 줄은 버퍼에 유지
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'content') {
+                onContent(data.content, data.accumulated);
+              } else if (data.type === 'done') {
+                onComplete(data.summary, {
+                  template_used: data.template_used,
+                  consultation_date: data.consultation_date
+                });
+                return;
+              } else if (data.type === 'error') {
+                onError(data.error);
+                return;
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Streaming error:', error);
+      onError(error instanceof Error ? error.message : 'Unknown error occurred');
+    }
+  },
+
   // 상담 요약 생성 및 저장
   createSummary: async (summary: SummaryCreate): Promise<ConsultationSummary> => {
     const response = await apiClient.post('/api/summaries/', summary);

@@ -20,9 +20,10 @@ import { SummaryGenerateRequest, SummaryGenerateResponse } from '../../types';
 
 interface SummaryGeneratorProps {
   onSummaryGenerated?: (summary: SummaryGenerateResponse) => void;
+  onStreamingContent?: (content: string, isStreaming: boolean) => void;
 }
 
-const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated }) => {
+const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated, onStreamingContent }) => {
   const theme = useTheme();
   const [originalText, setOriginalText] = useState('');
   const [consultantName, setConsultantName] = useState(''); // 상담자 이름
@@ -31,6 +32,8 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedSummary, setGeneratedSummary] = useState<SummaryGenerateResponse | null>(null);
+  const [streamedContent, setStreamedContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const handleGenerateSummary = async () => {
     if (!originalText.trim()) {
@@ -52,6 +55,9 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
 
     setLoading(true);
     setError(null);
+    setGeneratedSummary(null);
+    setStreamedContent('');
+    setIsStreaming(true);
 
     try {
       // 현재 날짜와 시간을 자동으로 설정
@@ -63,21 +69,43 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
         prompt_template_id: undefined // 기본 템플릿 사용
       };
 
-      const response = await summariesApi.generateSummary(request);
-      
-      // 추가 정보를 포함한 응답 생성
-      const enhancedResponse: SummaryGenerateResponse = {
-        ...response,
-        consultant_name: consultantName,
-        customer_name: clientName,
-        consultation_title: consultationTitle
-      };
-      
-      setGeneratedSummary(enhancedResponse);
-      onSummaryGenerated?.(enhancedResponse);
+      await summariesApi.generateSummaryStream(
+        request,
+        // onContent: 실시간으로 받은 내용 표시
+        (content: string, accumulated: string) => {
+          setStreamedContent(accumulated);
+          onStreamingContent?.(accumulated, true);
+        },
+        // onComplete: 완료 시 최종 처리
+        (summary: string, metadata: any) => {
+          const enhancedResponse: SummaryGenerateResponse = {
+            summary: summary,
+            original_text: originalText,
+            template_used: metadata.template_used,
+            consultation_date: metadata.consultation_date,
+            consultant_name: consultantName,
+            customer_name: clientName,
+            consultation_title: consultationTitle
+          };
+          
+          setGeneratedSummary(enhancedResponse);
+          setIsStreaming(false);
+          onStreamingContent?.(summary, false);
+          onSummaryGenerated?.(enhancedResponse);
+        },
+        // onError: 에러 처리
+        (error: string) => {
+          console.error('AI 요약 생성 실패:', error);
+          setError('AI 요약 생성에 실패했습니다. 다시 시도해주세요.');
+          setIsStreaming(false);
+          onStreamingContent?.('', false);
+        }
+      );
     } catch (error) {
       console.error('AI 요약 생성 실패:', error);
       setError('AI 요약 생성에 실패했습니다. 다시 시도해주세요.');
+      setIsStreaming(false);
+      onStreamingContent?.('', false);
     } finally {
       setLoading(false);
     }
@@ -89,7 +117,9 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
     setClientName('');
     setConsultationTitle('');
     setGeneratedSummary(null);
+    setStreamedContent('');
     setError(null);
+    setIsStreaming(false);
   };
 
 
@@ -157,6 +187,7 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
             helperText={`${originalText.length} / 10000 글자`}
           />
 
+
           {/* 에러 표시 */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -175,7 +206,7 @@ const SummaryGenerator: React.FC<SummaryGeneratorProps> = ({ onSummaryGenerated 
               startIcon={loading ? <CircularProgress size={20} /> : <AIIcon />}
               sx={{ flex: 1 }}
             >
-              {loading ? 'AI 분석 중...' : 'AI 요약 생성'}
+              {isStreaming ? 'AI 스트리밍 중...' : loading ? 'AI 분석 중...' : 'AI 요약 생성'}
             </Button>
             
             <Button

@@ -14,6 +14,7 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon
 } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 import SummaryGenerator from '../components/summaries/SummaryGenerator';
 import { ConsultationSummary, SummaryGenerateResponse, SummaryCreate, SummaryCreateDirect } from '../types';
 import { summariesApi } from '../services/api';
@@ -24,10 +25,17 @@ const SummariesPage: React.FC = () => {
   const [editedSummary, setEditedSummary] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const handleSummaryGenerated = (summary: SummaryGenerateResponse) => {
     // 요약이 생성되면 결과 영역에 표시
     setGeneratedSummary(summary);
+  };
+
+  const handleStreamingContent = (content: string, streaming: boolean) => {
+    setStreamingContent(content);
+    setIsStreaming(streaming);
   };
 
 
@@ -128,7 +136,10 @@ const SummariesPage: React.FC = () => {
             overflow: 'hidden'
           }}
         >
-          <SummaryGenerator onSummaryGenerated={handleSummaryGenerated} />
+          <SummaryGenerator 
+            onSummaryGenerated={handleSummaryGenerated}
+            onStreamingContent={handleStreamingContent}
+          />
         </Paper>
 
         {/* 2열 - 결과 */}
@@ -148,7 +159,46 @@ const SummariesPage: React.FC = () => {
             </Typography>
           </Box>
           <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-            {generatedSummary ? (
+            {/* 스트리밍 중 표시 */}
+            {isStreaming && (
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  borderRadius: 2,
+                  position: 'relative'
+                }}
+              >
+                <Typography variant="h6" gutterBottom sx={{ color: theme.palette.primary.main }}>
+                  🤖 AI 실시간 요약 생성 중...
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.6,
+                    '&::after': {
+                      content: '"|"',
+                      animation: 'blink 1s infinite',
+                      color: theme.palette.primary.main
+                    },
+                    '@keyframes blink': {
+                      '0%, 50%': { opacity: 1 },
+                      '51%, 100%': { opacity: 0 }
+                    }
+                  }}
+                >
+                  {streamingContent}
+                </Typography>
+              </Paper>
+            )}
+
+            {/* 완료된 요약 결과 */}
+            {generatedSummary && !isStreaming ? (
               <Box>
                 {/* 새로 생성된 요약 메타 정보 */}
                 <Paper 
@@ -249,7 +299,7 @@ const SummariesPage: React.FC = () => {
                   </Box>
                 )}
               </Box>
-            ) : (
+            ) : !isStreaming ? (
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column',
@@ -266,7 +316,7 @@ const SummariesPage: React.FC = () => {
                   왼쪽에서 새로운 요약을 생성해주세요.
                 </Typography>
               </Box>
-            )}
+            ) : null}
           </Box>
         </Paper>
       </Box>

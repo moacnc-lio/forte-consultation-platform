@@ -18,7 +18,8 @@ class OpenAISummaryService:
     async def summarize_japanese_to_korean(
         self, 
         japanese_text: str, 
-        prompt_template: str
+        prompt_template: str,
+        stream: bool = False
     ) -> Dict[str, Any]:
         """
         일본어 상담 내용을 한국어로 요약
@@ -38,7 +39,7 @@ class OpenAISummaryService:
             # 간소화된 시스템 프롬프트 (속도 최적화)
             system_content = "당신은 일본어를 한국어로 번역하고 의료/미용 상담 내용을 요약하는 전문가입니다.\n\n" + prompt_template
 
-            # OpenAI API 호출 (최신 모델 사용, 스트리밍 활성화)
+            # OpenAI API 호출
             response = self.client.chat.completions.create(
                 model="gpt-4.1-mini-2025-04-14",  # 최신 GPT-4.1 mini 모델
                 messages=[
@@ -53,23 +54,27 @@ class OpenAISummaryService:
                 ],
                 temperature=0.3,  # 빠른 응답을 위해 조정
                 max_tokens=2000,  # 토큰 수 줄여서 속도 향상
-                stream=True  # 스트리밍 활성화
+                stream=stream  # 스트리밍 옵션
             )
             
-            # 스트리밍 응답 처리
-            korean_summary = ""
-            usage_info = None
-            
-            for chunk in response:
-                if chunk.choices[0].delta.content is not None:
-                    korean_summary += chunk.choices[0].delta.content
+            if stream:
+                # 스트리밍 모드: 제너레이터로 청크 반환
+                return response
+            else:
+                # 일반 모드: 전체 응답 처리
+                korean_summary = ""
+                usage_info = None
                 
-                # 마지막 청크에서 usage 정보 가져오기
-                if hasattr(chunk, 'usage') and chunk.usage:
-                    usage_info = chunk.usage
-            
-            # 마크다운 기호 제거
-            korean_summary = self._clean_markdown(korean_summary)
+                for chunk in response:
+                    if chunk.choices[0].delta.content is not None:
+                        korean_summary += chunk.choices[0].delta.content
+                    
+                    # 마지막 청크에서 usage 정보 가져오기
+                    if hasattr(chunk, 'usage') and chunk.usage:
+                        usage_info = chunk.usage
+                
+                # 마크다운 기호 제거
+                korean_summary = self._clean_markdown(korean_summary)
             
             # 토큰 사용량 로깅 (usage 정보가 있는 경우만)
             if usage_info:

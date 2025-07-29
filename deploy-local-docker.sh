@@ -92,7 +92,7 @@ deploy_backend_local() {
         --platform managed \
         --region $REGION \
         --allow-unauthenticated \
-        --set-env-vars "APP_ENV=production,GCP_PROJECT=$PROJECT_ID,GCP_REGION=$REGION,DB_INSTANCE=forte-db,INSTANCE_CONNECTION_NAME=$PROJECT_ID:$REGION:forte-db" \
+        --set-env-vars "APP_ENV=production,GCP_PROJECT=$PROJECT_ID,GCP_REGION=$REGION,DB_INSTANCE=forte-db,INSTANCE_CONNECTION_NAME=$PROJECT_ID:$REGION:forte-db,ALLOWED_ORIGINS=https://forte-web-hhlhhgenaq-du.a.run.app" \
         --set-secrets "SECRET_KEY=secret-key:latest,OPENAI_API_KEY=openai-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest,DB_PASSWORD=db-password:latest" \
         --add-cloudsql-instances $PROJECT_ID:$REGION:forte-db \
         --memory 2Gi \
@@ -169,8 +169,16 @@ EOF
     # 프론트엔드 URL 가져오기
     FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region=$REGION --format='value(status.url)')
     
+    # 백엔드 CORS 설정을 실제 프론트엔드 URL로 업데이트
+    log_info "백엔드 CORS 설정을 실제 프론트엔드 URL로 업데이트 중..."
+    gcloud run services update $BACKEND_SERVICE \
+        --update-env-vars "ALLOWED_ORIGINS=$FRONTEND_URL" \
+        --region=$REGION \
+        --quiet
+    
     cd ..
     log_success "프론트엔드 배포 완료: $FRONTEND_URL"
+    log_success "백엔드 CORS 설정 업데이트 완료: $FRONTEND_URL"
 }
 
 # 정리 작업
